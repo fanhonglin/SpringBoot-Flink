@@ -4,6 +4,7 @@ import cn.hutool.core.date.DateUtil;
 import com.founder.bigdata.compute.demo.po.StatisticsTaskPo;
 import com.founder.bigdata.compute.demo.service.impl.StatisticServiceImpl;
 import com.founder.bigdata.compute.demo.service.task.PeriodicStatistic;
+import com.founder.bigdata.compute.demo.util.SpringUtils;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.configuration.Configuration;
@@ -37,8 +38,8 @@ public class PeriodicStatisticResult extends KeyedProcessFunction<String, Period
 
     private ValueState<Long> timerTsState;
 
-    @Resource
-    private StatisticServiceImpl statisticService;
+//    @Resource
+//    private StatisticServiceImpl statisticService;
 
     @Override
     public void open(Configuration parameters) {
@@ -127,7 +128,7 @@ public class PeriodicStatisticResult extends KeyedProcessFunction<String, Period
                     .illegalTotalNum(illegalTotalNum.value())
 
                     .build();
-            statisticService.updateTaskByReportTimeAndTaskId(statisticsTaskPo);
+            SpringUtils.getBean(StatisticServiceImpl.class).updateTaskByReportTimeAndTaskId(statisticsTaskPo);
         } catch (Exception e) {
             log.error("更新数据错误：{}", e, e.getMessage());
         }
