@@ -1,5 +1,5 @@
 server:
-  port: 1000
+  port: 1001
 #  port: ${random.int[1024,9999]}
 
 spring:
@@ -34,7 +34,6 @@ spring:
       keepAlive: true
 
 mybatis:
-  #mapper.xmlŒª÷√
   mapper-locations: classpath:mapper/*.xml,classpath*:mapper/**/*Mapper.xml
   configuration:
     use-generated-keys: true

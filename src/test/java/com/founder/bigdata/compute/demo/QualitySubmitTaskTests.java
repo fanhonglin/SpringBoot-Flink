@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 @SpringBootTest
-class QualitySubmitApplicationTests {
+class QualitySubmitTaskTests {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
