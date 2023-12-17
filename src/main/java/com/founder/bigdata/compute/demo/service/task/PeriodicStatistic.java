@@ -3,6 +3,7 @@ package com.founder.bigdata.compute.demo.service.task;
 
 import cn.hutool.extra.spring.SpringUtil;
 import com.founder.bigdata.compute.demo.function.PeriodicStatisticResult;
+import com.founder.bigdata.compute.demo.sink.TaskSink;
 import com.founder.bigdata.compute.demo.source.TaskSource;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,8 +11,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -39,11 +42,12 @@ public class PeriodicStatistic {
                         .withTimestampAssigner((SerializableTimestampAssigner<Task>) (element, recordTimestamp) -> element.timestamp)
                 );
 
-        stream.print("input");
+//        stream.print("input");
 
-        stream.keyBy(data -> data.getReportTime() + "_" + data.getTaskId())
-                .process(SpringUtil.getBean(PeriodicStatisticResult.class))
-                .print();
+        DataStream dataStream = stream.keyBy(data -> data.getReportTime() + "_" + data.getTaskId())
+                .process(new PeriodicStatisticResult());
+
+        dataStream.addSink(new TaskSink());
 
         new Thread(() -> {
             try {

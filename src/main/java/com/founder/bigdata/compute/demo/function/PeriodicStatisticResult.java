@@ -1,10 +1,9 @@
 package com.founder.bigdata.compute.demo.function;
 
 import cn.hutool.core.date.DateUtil;
+import com.alibaba.fastjson.JSON;
 import com.founder.bigdata.compute.demo.po.StatisticsTaskPo;
-import com.founder.bigdata.compute.demo.service.impl.StatisticServiceImpl;
 import com.founder.bigdata.compute.demo.service.task.PeriodicStatistic;
-import com.founder.bigdata.compute.demo.util.SpringUtils;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.configuration.Configuration;
@@ -15,14 +14,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.Objects;
 
 import static cn.hutool.core.date.DatePattern.NORM_DATE_PATTERN;
 
-@Component
-public class PeriodicStatisticResult extends KeyedProcessFunction<String, PeriodicStatistic.Task, String> {
+public class PeriodicStatisticResult extends KeyedProcessFunction<String, PeriodicStatistic.Task, StatisticsTaskPo> {
 
     private static final Logger log = LoggerFactory.getLogger(PeriodicStatisticResult.class);
 
@@ -38,9 +35,6 @@ public class PeriodicStatisticResult extends KeyedProcessFunction<String, Period
 
     private ValueState<Long> timerTsState;
 
-//    @Resource
-//    private StatisticServiceImpl statisticService;
-
     @Override
     public void open(Configuration parameters) {
         successTotalNum = getRuntimeContext().getState(new ValueStateDescriptor<>("count", Long.class));
@@ -52,7 +46,7 @@ public class PeriodicStatisticResult extends KeyedProcessFunction<String, Period
     }
 
     @Override
-    public void processElement(PeriodicStatistic.Task task, Context ctx, Collector<String> out) throws Exception {
+    public void processElement(PeriodicStatistic.Task task, Context ctx, Collector<StatisticsTaskPo> out) throws Exception {
 
         if (StringUtils.isEmpty(task.getReportTime())) {
             return;
@@ -107,31 +101,30 @@ public class PeriodicStatisticResult extends KeyedProcessFunction<String, Period
     }
 
     @Override
-    public void onTimer(long timestamp, OnTimerContext ctx, Collector<String> out) throws Exception {
+    public void onTimer(long timestamp, OnTimerContext ctx, Collector<StatisticsTaskPo> out) throws Exception {
         // 数据存储到mysql当中
 //            out.collect(ctx.getCurrentKey() + " 质检成功量 : " + successTotalNum.value());
         String[] split = ctx.getCurrentKey().split("_");
-        try {
-            StatisticsTaskPo statisticsTaskPo = StatisticsTaskPo
-                    .builder()
 
-                    .taskId(split[1])
-                    .reportTime(DateUtil.parse(split[0], NORM_DATE_PATTERN))
-                    // 质检成功量
-                    .successTotalNum(successTotalNum.value())
-                    // 总时长
-                    .totalTime(totalTime.value())
-                    // 总分数
-                    .qualityTotalScore(qualityTotalScore.value())
-                    // 合格和违规
-                    .eligibleTotalNum(eligibleTotalNum.value())
-                    .illegalTotalNum(illegalTotalNum.value())
+        StatisticsTaskPo statisticsTaskPo = StatisticsTaskPo
+                .builder()
 
-                    .build();
-            SpringUtils.getBean(StatisticServiceImpl.class).updateTaskByReportTimeAndTaskId(statisticsTaskPo);
-        } catch (Exception e) {
-            log.error("更新数据错误：{}", e, e.getMessage());
-        }
+                .taskId(split[1])
+                .reportTime(DateUtil.parse(split[0], NORM_DATE_PATTERN))
+                // 质检成功量
+                .successTotalNum(successTotalNum.value())
+                // 总时长
+                .totalTime(totalTime.value())
+                // 总分数
+                .qualityTotalScore(qualityTotalScore.value())
+                // 合格和违规
+                .eligibleTotalNum(eligibleTotalNum.value())
+                .illegalTotalNum(illegalTotalNum.value())
+
+                .build();
+
+        System.out.println("统计结果是：{}" + JSON.toJSONString(statisticsTaskPo));
+        out.collect(statisticsTaskPo);
         // 清空状态
         timerTsState.clear();
     }
